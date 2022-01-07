@@ -200,39 +200,54 @@ void *mem_alloc(size_t taille) {
 
 void mem_free(void* mem) {
     struct fb* currentFBAdress = get_header()->liste_chainee;
-    if (mem > get_system_memory_addr() + 24){ //on vérifie que la zone n'est pas dans le header
+    if (mem > get_system_memory_addr() + 24 && mem < get_system_memory_addr() + get_system_memory_size()){ //on vérifie que la zone n'est pas dans le header
         struct fb* zoneoccupee = (struct fb*) mem;
         while (currentFBAdress < zoneoccupee){
             currentFBAdress = currentFBAdress->next;
         }
         struct fb* precedent = currentFBAdress->previous;
+        
         if (currentFBAdress - zoneoccupee->size == 0){
-            //cela veut dire que la zone après la zoneoccupée
-            //est libre, on peut donc les lier
-            struct fb* newcurrentFBAdress = zoneoccupee;
-            precedent->next = newcurrentFBAdress;
-            newcurrentFBAdress->size = zoneoccupee->size + currentFBAdress->size;
-            newcurrentFBAdress->next = currentFBAdress->next;
-            newcurrentFBAdress->previous = currentFBAdress->previous;
-        }
-        if (precedent + precedent->size == zoneoccupee){
+            if (precedent + precedent->size == zoneoccupee){
             //cela veut dire que la zone avant la zone occupée 
-            //est libre, on peut donc les lier
+            //est libre mais aussi que celle après la zone
+            //occupée est libre aussi, on peut donc les lier
             struct fb* newcurrentFBAdress = precedent;
-            newcurrentFBAdress->size = precedent->size + zoneoccupee->size;
-            newcurrentFBAdress->next = precedent->next;
+            newcurrentFBAdress->size = precedent->size + zoneoccupee->size + currentFBAdress->size;
+            newcurrentFBAdress->next = currentFBAdress->next;
             newcurrentFBAdress->previous = precedent->previous;
+            }
+            else {
+                //cela veut dire que la zone après la zoneoccupée
+                //est libre, (mais pas celle avant)
+                //on peut donc les lier
+                struct fb* newcurrentFBAdress = zoneoccupee;
+                precedent->next = newcurrentFBAdress;
+                newcurrentFBAdress->size = zoneoccupee->size + currentFBAdress->size;
+                newcurrentFBAdress->next = currentFBAdress->next;
+                newcurrentFBAdress->previous = currentFBAdress->previous;
+            }
         }
         else {
-            //la zone occupee n'a pas de zone libre à côté d'elle
-            //on crée alors une nouvelle zone libre et on la rajoute
-            //dans la liste chainée
-            struct fb* newcurrentFBAdress = zoneoccupee;
-            precedent->next = newcurrentFBAdress;
-            currentFBAdress->previous = newcurrentFBAdress;
-            newcurrentFBAdress->size = zoneoccupee->size;
-            newcurrentFBAdress->next = currentFBAdress;
-            newcurrentFBAdress->previous = precedent;
+            if (precedent + precedent->size == zoneoccupee){
+                //cela veut dire que la zone avant la zone occupée 
+                //est libre, on peut donc les lier
+                struct fb* newcurrentFBAdress = precedent;
+                newcurrentFBAdress->size = precedent->size + zoneoccupee->size;
+                newcurrentFBAdress->next = precedent->next;
+                newcurrentFBAdress->previous = precedent->previous;
+            }
+            else {
+                //la zone occupee n'a pas de zone libre à côté d'elle
+                //on crée alors une nouvelle zone libre et on la rajoute
+                //dans la liste chainée
+                struct fb* newcurrentFBAdress = zoneoccupee;
+                precedent->next = newcurrentFBAdress;
+                currentFBAdress->previous = newcurrentFBAdress;
+                newcurrentFBAdress->size = zoneoccupee->size;
+                newcurrentFBAdress->next = currentFBAdress;
+                newcurrentFBAdress->previous = precedent;
+            }
         }
     }
 }
